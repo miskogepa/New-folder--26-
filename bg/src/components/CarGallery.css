@@ -1,0 +1,51 @@
+.car-gallery {
+  padding: 32px 0;
+  width: 100%;
+}
+.gallery-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 24px;
+  text-align: left;
+  padding-left: 32px;
+}
+.gallery-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+}
+.car-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s;
+}
+.car-card:hover {
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+}
+.car-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+.car-info {
+  padding: 12px 0 16px 0;
+  text-align: center;
+}
+.car-owner {
+  display: block;
+  font-weight: 600;
+  color: #222;
+}
+.car-model {
+  display: block;
+  color: #888;
+  font-size: 1rem;
+}
