@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import * as THREE from 'three';
 import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, SMAAPreset } from 'postprocessing';
+import { hyperspeedPresets } from "./data/hyperspeedPresets";
+
+
 
 const Hyperspeed = ({ effectOptions = {
   onSpeedUp: () => { },

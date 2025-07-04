@@ -1,5 +1,6 @@
 import React from "react";
 import BlurText from "./BlurText";
+import logo from "../assets/cars/logo.jpg";
 
 function Header() {
   const handleAnimationComplete = () => {
@@ -7,7 +8,7 @@ function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 py-8 ">
+    <header className="bg-gray-500  py-8 ">
       <div className="container mx-auto px-4 flex justify-center items-center ">
         <BlurText
           text="Bela griva"
