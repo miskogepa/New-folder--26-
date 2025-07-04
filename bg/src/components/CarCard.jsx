@@ -36,10 +36,7 @@ function CarCard({ car }) {
           }
         />
       </div>
-      <div className="text-center text-gray-800">
-        <h2 className="text-xl font-bold mb-2">{car.model}</h2>
-        <p className="text-sm">{car.owner}</p>
-      </div>
+   
     </div>
   );
 }

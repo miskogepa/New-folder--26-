@@ -7,15 +7,15 @@ function Header() {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 py-8">
-      <div className="container mx-auto px-4">
+    <header className="bg-white shadow-sm border-b border-gray-200 py-8 ">
+      <div className="container mx-auto px-4 flex justify-center items-center ">
         <BlurText
           text="Bela griva"
           delay={150}
           animateBy="words"
           direction="top"
           onAnimationComplete={handleAnimationComplete}
-          className="text-4xl font-bold text-center text-gray-800"
+          className="text-4xl font-bold text-center text-gray-600"
         />
       </div>
     </header>
