@@ -1,11 +1,14 @@
 import bmwImage from "../assets/cars/bmw.jpg";
+import zagImage from "../assets/cars/zagilogo.jpg";
+import bojkovicImage from "../assets/cars/bojkologo.jpg";
 
 export const cars = [
   {
     id: 1,
     owner: "Vladimir Petrović",
     model: "BMW X5",
-    image: "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=300&h=300&fit=crop"
+    image:
+      "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=300&h=300&fit=crop",
   },
   {
     id: 2,
@@ -17,9 +20,8 @@ export const cars = [
   {
     id: 3,
     owner: "Nikola Bojković",
-    model: "Audi A4",
-    image:
-      "https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=300&h=300&fit=crop",
+    model: "Peugeot 308 GT",
+    image: bojkovicImage,
   },
   {
     id: 4,
@@ -32,8 +34,7 @@ export const cars = [
     id: 5,
     owner: "Nemanja Zagorac",
     model: "Toyota Camry",
-    image:
-      "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=300&h=300&fit=crop",
+    image: zagImage,
   },
   {
     id: 6,
