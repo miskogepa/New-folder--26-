@@ -136,23 +136,23 @@ const CarGallery = () => {
             {cars.map((car) => (
               <div
                 key={car._id}
-                className="flex flex-col items-center space-y-4 p-6"
+                className="flex flex-col items-center space-y-4 p-6 group"
               >
                 <div
-                  className="cursor-pointer relative"
+                  className="cursor-pointer relative w-[300px] h-[220px]"
                   onClick={() => handleCarClick(car)}
                 >
-                  {/* Delete button overlay */}
+                  {/* Dugme za brisanje - prikazuje se na hover */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteCar(car._id);
                     }}
-                    className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+                    className="absolute top-2 right-2 z-20 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover:opacity-100"
                     title="Obriši automobil"
                   >
                     <svg
-                      className="w-4 h-4"
+                      className="w-5 h-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -165,7 +165,6 @@ const CarGallery = () => {
                       />
                     </svg>
                   </button>
-
                   <TiltedCard
                     imageSrc={
                       car.mainImage ||
@@ -174,9 +173,9 @@ const CarGallery = () => {
                     }
                     altText={`${car.owner} - ${car.brand} ${car.model}`}
                     captionText={`${car.owner} - ${car.brand} ${car.model}`}
-                    containerHeight="300px"
+                    containerHeight="220px"
                     containerWidth="300px"
-                    imageHeight="300px"
+                    imageHeight="220px"
                     imageWidth="300px"
                     rotateAmplitude={12}
                     scaleOnHover={1.2}
@@ -184,18 +183,19 @@ const CarGallery = () => {
                     showTooltip={true}
                     displayOverlayContent={true}
                     overlayContent={
-                      <div className="p-4 text-black bg-amber-300 bg-opacity-80 rounded-lg">
-                        <h3 className="text-lg font-bold">
-                          {car.brand} {car.model}
-                        </h3>
-                        <p className="text-sm mb-2">Vlasnik: {car.owner}</p>
-                        <p className="text-sm mb-2">Godina: {car.year}</p>
-                        <p className="text-sm">Gorivo: {car.fuel}</p>
+                      <div className="absolute top-2 left-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="p-3 bg-amber-300 text-black rounded-xl shadow font-sans min-w-[150px]">
+                          <h3 className="text-lg font-bold mb-1">
+                            {car.brand} {car.model}
+                          </h3>
+                          <p className="text-sm">Vlasnik: {car.owner}</p>
+                          <p className="text-sm">Godina: {car.year}</p>
+                          <p className="text-sm">Gorivo: {car.fuel}</p>
+                        </div>
                       </div>
                     }
                   />
                 </div>
-
                 {/* Car info below the card */}
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-800 mb-1">
@@ -204,7 +204,6 @@ const CarGallery = () => {
                   <p className="text-gray-600 text-sm mb-2">
                     Vlasnik: {car.owner}
                   </p>
-
                   {/* Stats */}
                   <div className="flex items-center justify-center space-x-4 text-xs text-gray-500">
                     <div className="flex items-center">
