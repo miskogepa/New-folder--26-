@@ -7,6 +7,7 @@ const DetaljnoAuto = () => {
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [liked, setLiked] = useState(false);
   const navigate = useNavigate();
   const { carId } = useParams();
 
@@ -17,6 +18,7 @@ const DetaljnoAuto = () => {
         setLoading(true);
         setError(null);
         const response = await carAPI.getCarById(carId);
+        console.log("Detalji automobila:", response);
         setCar(response.data);
       } catch (err) {
         console.error("Greška pri učitavanju automobila:", err);
@@ -41,6 +43,21 @@ const DetaljnoAuto = () => {
 
   const handleBack = () => {
     navigate("/galerija");
+  };
+
+  const handleLike = async () => {
+    try {
+      if (liked) {
+        await carAPI.unlikeCar(carId);
+        setCar((prev) => ({ ...prev, likes: prev.likes - 1 }));
+      } else {
+        await carAPI.likeCar(carId);
+        setCar((prev) => ({ ...prev, likes: prev.likes + 1 }));
+      }
+      setLiked(!liked);
+    } catch (error) {
+      console.error("Greška pri lajkovanju:", error);
+    }
   };
 
   // Loading state
@@ -79,13 +96,9 @@ const DetaljnoAuto = () => {
     );
   }
 
-  // Dummy slike za galeriju (kasnije će se dodati iz baze)
-  const carImages = [
-    car.mainImage || car.images?.[0] || car.image,
-    car.mainImage || car.images?.[0] || car.image, // duplikat za demo
-    car.mainImage || car.images?.[0] || car.image, // duplikat za demo
-    car.mainImage || car.images?.[0] || car.image, // duplikat za demo
-  ];
+  // Koristi prave slike iz baze
+  const carImages =
+    car.images && car.images.length > 0 ? car.images : [car.mainImage];
 
   return (
     <div className="w-full py-8">
@@ -116,19 +129,80 @@ const DetaljnoAuto = () => {
           {/* Main image */}
           <div className="relative h-96">
             <img
-              src={car.mainImage || car.images?.[0] || car.image}
-              alt={car.model}
+              src={car.mainImage || car.images?.[0]}
+              alt={`${car.brand} ${car.model}`}
               className="w-full h-full object-cover"
             />
+            {/* Like button overlay */}
+            <button
+              onClick={handleLike}
+              className="absolute top-4 right-4 bg-white bg-opacity-80 hover:bg-opacity-100 p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg
+                className={`w-6 h-6 ${
+                  liked ? "text-red-500 fill-current" : "text-gray-600"
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                />
+              </svg>
+            </button>
           </div>
 
           {/* Car info and description */}
           <div className="p-8">
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                {car.model}
+                {car.brand} {car.model}
               </h1>
               <p className="text-xl text-gray-600">Vlasnik: {car.owner}</p>
+              <div className="flex items-center mt-4 space-x-6">
+                <div className="flex items-center text-gray-600">
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                  {car.views || 0} pregleda
+                </div>
+                <div className="flex items-center text-gray-600">
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
+                  </svg>
+                  {car.likes || 0} lajkova
+                </div>
+              </div>
             </div>
 
             {/* Specifications grid */}
@@ -175,12 +249,10 @@ const DetaljnoAuto = () => {
                     <span className="font-medium">{car.condition}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Pregledi:</span>
-                    <span className="font-medium">{car.views || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Lajkovi:</span>
-                    <span className="font-medium">{car.likes || 0}</span>
+                    <span className="text-gray-600">Dodato:</span>
+                    <span className="font-medium">
+                      {new Date(car.createdAt).toLocaleDateString("sr-RS")}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -195,31 +267,37 @@ const DetaljnoAuto = () => {
             </div>
 
             {/* Image gallery */}
-            <div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                Galerija slika
-              </h3>
-              <div className="flex flex-wrap gap-4">
-                {carImages.map((image, index) => (
-                  <div
-                    key={index}
-                    className="bg-white rounded-xl shadow-md overflow-hidden w-52 flex flex-col items-center transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:shadow-xl cursor-pointer"
-                    onClick={() => openModal(image)}
-                  >
-                    <img
-                      src={image}
-                      alt={`${car.model} - slika ${index + 1}`}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="py-3 text-center">
-                      <span className="block text-gray-500 text-sm">
-                        Slika {index + 1}
-                      </span>
+            {carImages && carImages.length > 0 && (
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                  Galerija slika ({carImages.length})
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {carImages.map((image, index) => (
+                    <div
+                      key={index}
+                      className="bg-white rounded-xl shadow-md overflow-hidden transition-transform duration-200 hover:-translate-y-1 hover:scale-105 hover:shadow-xl cursor-pointer"
+                      onClick={() => openModal(image)}
+                    >
+                      <img
+                        src={image}
+                        alt={`${car.brand} ${car.model} - slika ${index + 1}`}
+                        className="w-full h-40 object-cover"
+                        onError={(e) => {
+                          e.target.src =
+                            "https://via.placeholder.com/300x200?text=Slika+nije+dostupna";
+                        }}
+                      />
+                      <div className="py-3 text-center">
+                        <span className="block text-gray-500 text-sm">
+                          Slika {index + 1}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -233,7 +311,7 @@ const DetaljnoAuto = () => {
           <div className="relative max-w-4xl max-h-full p-4">
             <button
               onClick={closeModal}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold z-10"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold z-10 bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
             >
               ×
             </button>

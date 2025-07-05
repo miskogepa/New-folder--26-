@@ -1,20 +1,31 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TiltedCard from "./TiltedCard";
 
 function CarCard({ car, onClick }) {
   const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
 
   // Koristi mainImage ili prvu sliku iz niza
   const imageSrc =
     car.mainImage ||
     (car.images && car.images.length > 0 ? car.images[0] : null);
 
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick(car);
+    } else {
+      // Default navigacija na detaljnu stranicu
+      navigate(`/auto/${car._id || car.id}`);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center space-y-4 p-6">
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onClick={() => onClick && onClick(car)}
+        onClick={handleCardClick}
         className="cursor-pointer"
       >
         <TiltedCard

@@ -29,10 +29,6 @@ const CarGallery = () => {
     fetchCars();
   }, []);
 
-  const handleCarClick = (car) => {
-    navigate(`/auto/${car._id || car.id}`);
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -103,7 +99,7 @@ const CarGallery = () => {
       </h2>
       <div className="flex flex-wrap gap-6 justify-center">
         {cars.map((car) => (
-          <CarCard car={car} key={car._id || car.id} onClick={handleCarClick} />
+          <CarCard car={car} key={car._id || car.id} />
         ))}
       </div>
     </div>
