@@ -296,4 +296,121 @@ router.get("/owner/:owner", async (req, res) => {
   }
 });
 
+// POST - Dodavanje komentara
+router.post("/:id/comments", async (req, res) => {
+  try {
+    const { author, text, images = [] } = req.body;
+
+    // Validacija
+    if (!author || !text) {
+      return res.status(400).json({
+        success: false,
+        message: "Autor i tekst komentara su obavezni",
+      });
+    }
+
+    const car = await Car.findById(req.params.id);
+
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Automobil nije pronađen",
+      });
+    }
+
+    // Dodaj komentar
+    await car.addComment(author, text, images);
+
+    res.json({
+      success: true,
+      message: "Komentar je uspešno dodat",
+      data: car,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Greška pri dodavanju komentara",
+      error: error.message,
+    });
+  }
+});
+
+// POST - Dodavanje slika u glavnu galeriju
+router.post("/:id/images", async (req, res) => {
+  try {
+    const { images } = req.body;
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Slike su obavezne",
+      });
+    }
+
+    const car = await Car.findById(req.params.id);
+
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Automobil nije pronađen",
+      });
+    }
+
+    // Dodaj slike
+    await car.addImages(images);
+
+    res.json({
+      success: true,
+      message: "Slike su uspešno dodate",
+      data: car,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Greška pri dodavanju slika",
+      error: error.message,
+    });
+  }
+});
+
+// DELETE - Brisanje komentara
+router.delete("/:id/comments/:commentId", async (req, res) => {
+  try {
+    const car = await Car.findById(req.params.id);
+
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Automobil nije pronađen",
+      });
+    }
+
+    // Pronađi i obriši komentar
+    const commentIndex = car.comments.findIndex(
+      (comment) => comment._id.toString() === req.params.commentId
+    );
+
+    if (commentIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Komentar nije pronađen",
+      });
+    }
+
+    car.comments.splice(commentIndex, 1);
+    await car.save();
+
+    res.json({
+      success: true,
+      message: "Komentar je uspešno obrisan",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Greška pri brisanju komentara",
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;

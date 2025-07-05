@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import carAPI, { handleAPIError } from "../services/api";
+import carAPI, { uploadAPI } from "../services/api";
 
 const DetaljnoAuto = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -8,6 +8,16 @@ const DetaljnoAuto = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [liked, setLiked] = useState(false);
+  const [showCommentForm, setShowCommentForm] = useState(false);
+  const [showImageForm, setShowImageForm] = useState(false);
+  const [commentForm, setCommentForm] = useState({
+    author: "",
+    text: "",
+    images: [],
+  });
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [submittingImages, setSubmittingImages] = useState(false);
   const navigate = useNavigate();
   const { carId } = useParams();
 
@@ -57,6 +67,118 @@ const DetaljnoAuto = () => {
       setLiked(!liked);
     } catch (error) {
       console.error("Greška pri lajkovanju:", error);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setSubmittingComment(true);
+
+      // Upload slika ako postoje
+      let uploadedImageUrls = [];
+      if (commentForm.images.length > 0) {
+        setUploadingImages(true);
+        const uploadResponse = await uploadAPI.uploadMultiple(
+          commentForm.images
+        );
+        uploadedImageUrls = uploadResponse.data.map((img) => img.url);
+        setUploadingImages(false);
+      }
+
+      // Dodaj komentar
+      const response = await carAPI.addComment(carId, {
+        author: commentForm.author,
+        text: commentForm.text,
+        images: uploadedImageUrls,
+      });
+
+      // Ažuriraj stanje
+      setCar(response.data);
+      setCommentForm({ author: "", text: "", images: [] });
+      setShowCommentForm(false);
+    } catch (error) {
+      console.error("Greška pri dodavanju komentara:", error);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleImageSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      setSubmittingImages(true);
+
+      // Upload slika
+      const uploadResponse = await uploadAPI.uploadMultiple(commentForm.images);
+      const uploadedImageUrls = uploadResponse.data.map((img) => img.url);
+
+      // Dodaj slike u glavnu galeriju
+      const response = await carAPI.addImages(carId, uploadedImageUrls);
+
+      // Ažuriraj stanje
+      setCar(response.data);
+      setCommentForm({ author: "", text: "", images: [] });
+      setShowImageForm(false);
+    } catch (error) {
+      console.error("Greška pri dodavanju slika:", error);
+    } finally {
+      setSubmittingImages(false);
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files);
+
+    // Validacija veličine fajlova
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter((file) => file.size > maxSize);
+
+    if (oversizedFiles.length > 0) {
+      alert(
+        `Slike ${oversizedFiles
+          .map((f) => f.name)
+          .join(", ")} su prevelike. Maksimalna veličina je 10MB.`
+      );
+      return;
+    }
+
+    if (files.length > 5) {
+      alert("Možete izabrati maksimalno 5 slika.");
+      return;
+    }
+
+    setCommentForm((prev) => ({
+      ...prev,
+      images: files,
+    }));
+  };
+
+  const removeImage = (index) => {
+    setCommentForm((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    if (
+      window.confirm("Da li ste sigurni da želite da obrišete ovaj komentar?")
+    ) {
+      try {
+        await carAPI.deleteComment(carId, commentId);
+        // Ažuriraj stanje - ukloni komentar iz liste
+        setCar((prev) => ({
+          ...prev,
+          comments: prev.comments.filter(
+            (comment) => comment._id !== commentId
+          ),
+        }));
+      } catch (error) {
+        console.error("Greška pri brisanju komentara:", error);
+      }
     }
   };
 
@@ -265,6 +387,270 @@ const DetaljnoAuto = () => {
                 {car.description}
               </p>
             </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-4 mb-8">
+              <button
+                onClick={() => setShowCommentForm(!showCommentForm)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                Dodaj komentar
+              </button>
+              <button
+                onClick={() => setShowImageForm(!showImageForm)}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                Dodaj slike
+              </button>
+            </div>
+
+            {/* Comment form */}
+            {showCommentForm && (
+              <div className="mb-8 p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Dodaj komentar
+                </h3>
+                <form onSubmit={handleCommentSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ime *
+                    </label>
+                    <input
+                      type="text"
+                      value={commentForm.author}
+                      onChange={(e) =>
+                        setCommentForm((prev) => ({
+                          ...prev,
+                          author: e.target.value,
+                        }))
+                      }
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Vaše ime"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Komentar *
+                    </label>
+                    <textarea
+                      value={commentForm.text}
+                      onChange={(e) =>
+                        setCommentForm((prev) => ({
+                          ...prev,
+                          text: e.target.value,
+                        }))
+                      }
+                      required
+                      rows="3"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Napišite komentar (npr. servis, modifikacije, itd.)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Slike (opciono)
+                    </label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Maksimalno 5 slika, 10MB po slici
+                    </p>
+                  </div>
+
+                  {/* Image preview */}
+                  {commentForm.images.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {commentForm.images.map((file, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-20 object-cover rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      disabled={submittingComment || uploadingImages}
+                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      {submittingComment ? "Dodavanje..." : "Dodaj komentar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCommentForm(false)}
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      Otkaži
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Image form */}
+            {showImageForm && (
+              <div className="mb-8 p-6 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Dodaj slike u galeriju
+                </h3>
+                <form onSubmit={handleImageSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Slike *
+                    </label>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Maksimalno 5 slika, 10MB po slici
+                    </p>
+                  </div>
+
+                  {/* Image preview */}
+                  {commentForm.images.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {commentForm.images.map((file, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-20 object-cover rounded"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button
+                      type="submit"
+                      disabled={submittingImages}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      {submittingImages ? "Dodavanje..." : "Dodaj slike"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowImageForm(false)}
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      Otkaži
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Comments section */}
+            {car.comments && car.comments.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                  Komentari ({car.comments.length})
+                </h3>
+                <div className="space-y-4">
+                  {car.comments.map((comment, index) => (
+                    <div
+                      key={comment._id || index}
+                      className="bg-gray-50 p-4 rounded-lg"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">
+                            {comment.author}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {new Date(comment.createdAt).toLocaleDateString(
+                              "sr-RS"
+                            )}{" "}
+                            {new Date(comment.createdAt).toLocaleTimeString(
+                              "sr-RS"
+                            )}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteComment(comment._id)}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Obriši
+                        </button>
+                      </div>
+                      <p className="text-gray-700 mb-3">{comment.text}</p>
+
+                      {/* Comment images */}
+                      {comment.images && comment.images.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {comment.images.map((image, imgIndex) => (
+                            <img
+                              key={imgIndex}
+                              src={image}
+                              alt={`Komentar slika ${imgIndex + 1}`}
+                              className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80"
+                              onClick={() => openModal(image)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Image gallery */}
             {carImages && carImages.length > 0 && (

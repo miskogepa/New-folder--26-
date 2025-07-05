@@ -105,6 +105,29 @@ export const carAPI = {
   getCarsByOwner: async (owner) => {
     return apiCall(`/cars/owner/${owner}`);
   },
+
+  // POST - Dodavanje komentara
+  addComment: async (carId, commentData) => {
+    return apiCall(`/cars/${carId}/comments`, {
+      method: "POST",
+      body: JSON.stringify(commentData),
+    });
+  },
+
+  // POST - Dodavanje slika
+  addImages: async (carId, images) => {
+    return apiCall(`/cars/${carId}/images`, {
+      method: "POST",
+      body: JSON.stringify({ images }),
+    });
+  },
+
+  // DELETE - Brisanje komentara
+  deleteComment: async (carId, commentId) => {
+    return apiCall(`/cars/${carId}/comments/${commentId}`, {
+      method: "DELETE",
+    });
+  },
 };
 
 // Upload API funkcije

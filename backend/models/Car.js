@@ -1,5 +1,28 @@
 const mongoose = require("mongoose");
 
+const commentSchema = new mongoose.Schema({
+  author: {
+    type: String,
+    required: [true, "Autor komentara je obavezan"],
+    trim: true,
+  },
+  text: {
+    type: String,
+    required: [true, "Tekst komentara je obavezan"],
+    trim: true,
+    maxlength: [500, "Komentar ne može biti duži od 500 karaktera"],
+  },
+  images: [
+    {
+      type: String, // URL slike
+    },
+  ],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
 const carSchema = new mongoose.Schema(
   {
     owner: {
@@ -73,6 +96,7 @@ const carSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    comments: [commentSchema],
   },
   {
     timestamps: true, // Dodaje createdAt i updatedAt polja
@@ -106,6 +130,23 @@ carSchema.methods.unlike = function () {
   if (this.likes > 0) {
     this.likes -= 1;
   }
+  return this.save();
+};
+
+// Metoda za dodavanje komentara
+carSchema.methods.addComment = function (author, text, images = []) {
+  this.comments.push({
+    author,
+    text,
+    images,
+    createdAt: new Date(),
+  });
+  return this.save();
+};
+
+// Metoda za dodavanje slika u glavnu galeriju
+carSchema.methods.addImages = function (newImages) {
+  this.images.push(...newImages);
   return this.save();
 };
 
