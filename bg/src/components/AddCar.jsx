@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import carAPI from "../services/api";
+import carAPI, { uploadAPI } from "../services/api";
 
 const AddCar = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ const AddCar = () => {
   });
 
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadedImages, setUploadedImages] = useState([]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,22 +33,65 @@ const AddCar = () => {
     }));
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
+
+    // Validacija veličine fajlova
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = files.filter((file) => file.size > maxSize);
+
+    if (oversizedFiles.length > 0) {
+      setMessage({
+        type: "error",
+        text: `Slike ${oversizedFiles
+          .map((f) => f.name)
+          .join(", ")} su prevelike. Maksimalna veličina je 10MB.`,
+      });
+      return;
+    }
+
+    if (files.length > 10) {
+      setMessage({
+        type: "error",
+        text: "Možete izabrati maksimalno 10 slika.",
+      });
+      return;
+    }
+
     setSelectedFiles(files);
 
-    // Za sada koristimo dummy URL-ove za slike
-    // Kasnije ćeš dodati upload na Cloudinary
-    const dummyImages = files.map(
-      (file, index) =>
-        `https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=300&h=300&fit=crop&v=${index}`
-    );
+    if (files.length > 0) {
+      try {
+        setUploading(true);
+        setMessage({ type: "", text: "" });
 
-    setFormData((prev) => ({
-      ...prev,
-      images: dummyImages,
-      mainImage: dummyImages[0] || "",
-    }));
+        // Upload slika na Cloudinary
+        const response = await uploadAPI.uploadMultiple(files);
+
+        const imageUrls = response.data.map((img) => img.url);
+        const imagePublicIds = response.data.map((img) => img.publicId);
+
+        setUploadedImages(response.data);
+        setFormData((prev) => ({
+          ...prev,
+          images: imageUrls,
+          mainImage: imageUrls[0] || "",
+        }));
+
+        setMessage({
+          type: "success",
+          text: `${files.length} slika je uspešno uploadovano!`,
+        });
+      } catch (error) {
+        console.error("Greška pri upload-u slika:", error);
+        setMessage({
+          type: "error",
+          text: error.message || "Greška pri upload-u slika",
+        });
+      } finally {
+        setUploading(false);
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -71,6 +116,10 @@ const AddCar = () => {
         throw new Error("Sva obavezna polja moraju biti popunjena");
       }
 
+      if (formData.images.length === 0) {
+        throw new Error("Dodajte bar jednu sliku automobila");
+      }
+
       // Slanje podataka na API
       const response = await carAPI.createCar(formData);
 
@@ -92,6 +141,28 @@ const AddCar = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const removeImage = (index) => {
+    const newImages = [...formData.images];
+    const newUploadedImages = [...uploadedImages];
+
+    // Obriši sliku sa Cloudinary
+    if (newUploadedImages[index]) {
+      uploadAPI
+        .deleteImage(newUploadedImages[index].publicId)
+        .catch(console.error);
+    }
+
+    newImages.splice(index, 1);
+    newUploadedImages.splice(index, 1);
+
+    setFormData((prev) => ({
+      ...prev,
+      images: newImages,
+      mainImage: newImages[0] || "",
+    }));
+    setUploadedImages(newUploadedImages);
   };
 
   return (
@@ -280,29 +351,73 @@ const AddCar = () => {
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Slike automobila
+                Slike automobila *
               </label>
               <input
                 type="file"
                 multiple
                 accept="image/*"
                 onChange={handleFileChange}
-                disabled={loading}
+                disabled={loading || uploading}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Možete izabrati više slika (JPG, PNG, GIF). Za sada se koriste
-                dummy slike.
+                Možete izabrati više slika (JPG, PNG, GIF). Maksimalno 10 slika,
+                10MB po slici.
               </p>
+
+              {/* Upload progress */}
+              {uploading && (
+                <div className="mt-2">
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    <span className="text-sm text-gray-600">
+                      Upload slika...
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Image preview */}
+              {formData.images.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">
+                    Uploadovane slike:
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {formData.images.map((image, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={image}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                        {index === 0 && (
+                          <div className="absolute bottom-0 left-0 bg-blue-500 text-white text-xs px-2 py-1 rounded-tl-lg">
+                            Glavna
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}
             <div className="flex justify-center">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || uploading}
                 className={`font-semibold py-3 px-8 rounded-lg transition-colors ${
-                  loading
+                  loading || uploading
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700 text-white"
                 }`}

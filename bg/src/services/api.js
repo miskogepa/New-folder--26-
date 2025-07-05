@@ -24,6 +24,27 @@ const apiCall = async (endpoint, options = {}) => {
   }
 };
 
+// Helper funkcija za upload fajlova
+const uploadCall = async (endpoint, formData) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      body: formData, // Ne dodaj Content-Type header za FormData
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Upload greška");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Upload Error:", error);
+    throw error;
+  }
+};
+
 // Car API funkcije
 export const carAPI = {
   // GET - Svi automobili
@@ -83,6 +104,32 @@ export const carAPI = {
   // GET - Automobili po vlasniku
   getCarsByOwner: async (owner) => {
     return apiCall(`/cars/owner/${owner}`);
+  },
+};
+
+// Upload API funkcije
+export const uploadAPI = {
+  // Upload jedne slike
+  uploadSingle: async (file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return uploadCall("/upload/single", formData);
+  },
+
+  // Upload više slika
+  uploadMultiple: async (files) => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("images", file);
+    });
+    return uploadCall("/upload/multiple", formData);
+  },
+
+  // Brisanje slike
+  deleteImage: async (publicId) => {
+    return apiCall(`/upload/${publicId}`, {
+      method: "DELETE",
+    });
   },
 };
 

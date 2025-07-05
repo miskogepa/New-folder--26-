@@ -28,9 +28,11 @@ mongoose
 
 // Import routes
 const carRoutes = require("./routes/cars");
+const uploadRoutes = require("./routes/upload");
 
 // Use routes
 app.use("/api/cars", carRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // Basic route for testing
 app.get("/", (req, res) => {
@@ -40,6 +42,7 @@ app.get("/", (req, res) => {
     endpoints: {
       cars: "/api/cars",
       carsById: "/api/cars/:id",
+      upload: "/api/upload",
     },
   });
 });
