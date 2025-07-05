@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import TiltedCard from "./TiltedCard";
 
-function CarCard({ car }) {
+function CarCard({ car, onClick }) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -9,6 +9,7 @@ function CarCard({ car }) {
       <div
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onClick={() => onClick && onClick(car)}
         className="cursor-pointer"
       >
         <TiltedCard
@@ -36,7 +37,6 @@ function CarCard({ car }) {
           }
         />
       </div>
-   
     </div>
   );
 }
