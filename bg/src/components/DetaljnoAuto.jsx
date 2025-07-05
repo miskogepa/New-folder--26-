@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import carAPI, { uploadAPI } from "../services/api";
+import Notification from "./Notification";
+import ConfirmDialog from "./ConfirmDialog";
 
 const DetaljnoAuto = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -18,8 +20,30 @@ const DetaljnoAuto = () => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
   const [submittingImages, setSubmittingImages] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    type: "",
+    action: null,
+  });
   const navigate = useNavigate();
   const { carId } = useParams();
+
+  const showNotification = (message, type = "success") => {
+    setNotification({ message, type });
+  };
+
+  const hideNotification = () => {
+    setNotification(null);
+  };
+
+  const showConfirmDialog = (type, action) => {
+    setConfirmDialog({ isOpen: true, type, action });
+  };
+
+  const hideConfirmDialog = () => {
+    setConfirmDialog({ isOpen: false, type: "", action: null });
+  };
 
   // Učitaj auto po ID-u iz API-ja
   useEffect(() => {
@@ -67,6 +91,7 @@ const DetaljnoAuto = () => {
       setLiked(!liked);
     } catch (error) {
       console.error("Greška pri lajkovanju:", error);
+      showNotification("Greška pri lajkovanju automobila", "error");
     }
   };
 
@@ -98,8 +123,10 @@ const DetaljnoAuto = () => {
       setCar(response.data);
       setCommentForm({ author: "", text: "", images: [] });
       setShowCommentForm(false);
+      showNotification("Komentar je uspešno dodat!");
     } catch (error) {
       console.error("Greška pri dodavanju komentara:", error);
+      showNotification("Greška pri dodavanju komentara", "error");
     } finally {
       setSubmittingComment(false);
     }
@@ -122,8 +149,10 @@ const DetaljnoAuto = () => {
       setCar(response.data);
       setCommentForm({ author: "", text: "", images: [] });
       setShowImageForm(false);
+      showNotification("Slike su uspešno dodate u galeriju!");
     } catch (error) {
       console.error("Greška pri dodavanju slika:", error);
+      showNotification("Greška pri dodavanju slika", "error");
     } finally {
       setSubmittingImages(false);
     }
@@ -137,16 +166,17 @@ const DetaljnoAuto = () => {
     const oversizedFiles = files.filter((file) => file.size > maxSize);
 
     if (oversizedFiles.length > 0) {
-      alert(
+      showNotification(
         `Slike ${oversizedFiles
           .map((f) => f.name)
-          .join(", ")} su prevelike. Maksimalna veličina je 10MB.`
+          .join(", ")} su prevelike. Maksimalna veličina je 10MB.`,
+        "warning"
       );
       return;
     }
 
     if (files.length > 5) {
-      alert("Možete izabrati maksimalno 5 slika.");
+      showNotification("Možete izabrati maksimalno 5 slika.", "warning");
       return;
     }
 
@@ -164,9 +194,7 @@ const DetaljnoAuto = () => {
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (
-      window.confirm("Da li ste sigurni da želite da obrišete ovaj komentar?")
-    ) {
+    showConfirmDialog("warning", async () => {
       try {
         await carAPI.deleteComment(carId, commentId);
         // Ažuriraj stanje - ukloni komentar iz liste
@@ -176,27 +204,30 @@ const DetaljnoAuto = () => {
             (comment) => comment._id !== commentId
           ),
         }));
+        showNotification("Komentar je uspešno obrisan!");
       } catch (error) {
         console.error("Greška pri brisanju komentara:", error);
+        showNotification("Greška pri brisanju komentara", "error");
       }
-    }
+    });
   };
 
   const handleDeleteCar = async () => {
-    if (
-      window.confirm(
-        "Da li ste sigurni da želite da obrišete ovaj automobil? Ova akcija se ne može poništiti."
-      )
-    ) {
+    showConfirmDialog("danger", async () => {
       try {
         await carAPI.deleteCar(carId);
-        alert("Automobil je uspešno obrisan!");
-        navigate("/galerija");
+        showNotification("Automobil je uspešno obrisan!");
+        setTimeout(() => {
+          navigate("/galerija");
+        }, 1500);
       } catch (error) {
         console.error("Greška pri brisanju automobila:", error);
-        alert("Greška pri brisanju automobila. Pokušajte ponovo.");
+        showNotification(
+          "Greška pri brisanju automobila. Pokušajte ponovo.",
+          "error"
+        );
       }
-    }
+    });
   };
 
   // Loading state
@@ -746,6 +777,35 @@ const DetaljnoAuto = () => {
           </div>
         </div>
       )}
+
+      {/* Notification */}
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={hideNotification}
+        />
+      )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={hideConfirmDialog}
+        onConfirm={confirmDialog.action}
+        title={
+          confirmDialog.type === "danger"
+            ? "Brisanje automobila"
+            : "Brisanje komentara"
+        }
+        message={
+          confirmDialog.type === "danger"
+            ? "Da li ste sigurni da želite da obrišete ovaj automobil? Ova akcija se ne može poništiti."
+            : "Da li ste sigurni da želite da obrišete ovaj komentar?"
+        }
+        confirmText="Obriši"
+        cancelText="Otkaži"
+        type={confirmDialog.type}
+      />
     </div>
   );
 };
