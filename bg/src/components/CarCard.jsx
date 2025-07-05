@@ -4,6 +4,11 @@ import TiltedCard from "./TiltedCard";
 function CarCard({ car, onClick }) {
   const [isHovered, setIsHovered] = useState(false);
 
+  // Koristi mainImage ili prvu sliku iz niza
+  const imageSrc =
+    car.mainImage ||
+    (car.images && car.images.length > 0 ? car.images[0] : null);
+
   return (
     <div className="flex flex-col items-center space-y-4 p-6">
       <div
@@ -13,9 +18,9 @@ function CarCard({ car, onClick }) {
         className="cursor-pointer"
       >
         <TiltedCard
-          imageSrc={car.image}
-          altText={`${car.owner} - ${car.model}`}
-          captionText={`${car.owner} - ${car.model}`}
+          imageSrc={imageSrc}
+          altText={`${car.owner} - ${car.brand} ${car.model}`}
+          captionText={`${car.owner} - ${car.brand} ${car.model}`}
           containerHeight="300px"
           containerWidth="300px"
           imageHeight="300px"
@@ -27,10 +32,14 @@ function CarCard({ car, onClick }) {
           displayOverlayContent={true}
           overlayContent={
             <div className="p-4 text-black bg-amber-300 bg-opacity-80 rounded-lg">
-              <h3 className="text-lg font-bold">{car.model}</h3>
+              <h3 className="text-lg font-bold">
+                {car.brand} {car.model}
+              </h3>
               {isHovered && (
                 <>
                   <p className="text-sm mb-2">Vlasnik: {car.owner}</p>
+                  <p className="text-sm mb-2">Godina: {car.year}</p>
+                  <p className="text-sm">Gorivo: {car.fuel}</p>
                 </>
               )}
             </div>

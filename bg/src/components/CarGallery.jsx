@@ -16,6 +16,7 @@ const CarGallery = () => {
         setLoading(true);
         setError(null);
         const response = await carAPI.getAllCars();
+        console.log("Dobijeni automobili:", response);
         setCars(response.data || []);
       } catch (err) {
         console.error("Greška pri učitavanju automobila:", err);

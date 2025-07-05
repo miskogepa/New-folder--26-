@@ -120,8 +120,13 @@ const AddCar = () => {
         throw new Error("Dodajte bar jednu sliku automobila");
       }
 
+      // Debug: prikaži šta se šalje
+      console.log("Slanje podataka:", formData);
+
       // Slanje podataka na API
       const response = await carAPI.createCar(formData);
+
+      console.log("API odgovor:", response);
 
       setMessage({
         type: "success",
