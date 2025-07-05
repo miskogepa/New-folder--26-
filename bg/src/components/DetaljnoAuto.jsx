@@ -1,40 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { cars } from "../data/data.js";
+import carAPI, { handleAPIError } from "../services/api";
 
 const DetaljnoAuto = () => {
   const [selectedImage, setSelectedImage] = useState(null);
+  const [car, setCar] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { carId } = useParams();
 
-  // Učitaj auto po ID-u
-  const car = cars.find((c) => c.id === parseInt(carId));
+  // Učitaj auto po ID-u iz API-ja
+  useEffect(() => {
+    const fetchCar = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await carAPI.getCarById(carId);
+        setCar(response.data);
+      } catch (err) {
+        console.error("Greška pri učitavanju automobila:", err);
+        setError(err.message || "Automobil nije pronađen");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!car) {
-    return (
-      <div className="w-full py-8">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">
-            Auto nije pronađen
-          </h1>
-          <button
-            onClick={() => navigate("/galerija")}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-          >
-            Nazad na galeriju
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Dummy slike za galeriju (kasnije će se dodati iz baze)
-  const carImages = [
-    car.image,
-    car.image, // duplikat za demo
-    car.image, // duplikat za demo
-    car.image, // duplikat za demo
-  ];
+    if (carId) {
+      fetchCar();
+    }
+  }, [carId]);
 
   const openModal = (image) => {
     setSelectedImage(image);
@@ -47,6 +42,50 @@ const DetaljnoAuto = () => {
   const handleBack = () => {
     navigate("/galerija");
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Učitavanje automobila...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !car) {
+    return (
+      <div className="w-full py-8">
+        <div className="max-w-4xl mx-auto px-4 text-center">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">
+            {error || "Automobil nije pronađen"}
+          </h1>
+          <button
+            onClick={handleBack}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+          >
+            Nazad na galeriju
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Dummy slike za galeriju (kasnije će se dodati iz baze)
+  const carImages = [
+    car.mainImage || car.images?.[0] || car.image,
+    car.mainImage || car.images?.[0] || car.image, // duplikat za demo
+    car.mainImage || car.images?.[0] || car.image, // duplikat za demo
+    car.mainImage || car.images?.[0] || car.image, // duplikat za demo
+  ];
 
   return (
     <div className="w-full py-8">
@@ -77,7 +116,7 @@ const DetaljnoAuto = () => {
           {/* Main image */}
           <div className="relative h-96">
             <img
-              src={car.image}
+              src={car.mainImage || car.images?.[0] || car.image}
               alt={car.model}
               className="w-full h-full object-cover"
             />
@@ -134,6 +173,14 @@ const DetaljnoAuto = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Stanje:</span>
                     <span className="font-medium">{car.condition}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Pregledi:</span>
+                    <span className="font-medium">{car.views || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Lajkovi:</span>
+                    <span className="font-medium">{car.likes || 0}</span>
                   </div>
                 </div>
               </div>
