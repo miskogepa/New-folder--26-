@@ -81,12 +81,10 @@ const carSchema = new mongoose.Schema(
     images: [
       {
         type: String,
-        required: [true, "Bar jedna slika je obavezna"],
       },
     ],
     mainImage: {
       type: String,
-      required: [true, "Glavna slika je obavezna"],
     },
     likes: {
       type: Number,

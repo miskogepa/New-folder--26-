@@ -127,7 +127,7 @@ router.post("/", async (req, res) => {
       condition,
       description,
       images: images || [],
-      mainImage: mainImage || (images && images.length > 0 ? images[0] : ""),
+      mainImage: mainImage || (images && images.length > 0 ? images[0] : null),
     });
 
     const savedCar = await newCar.save();

@@ -138,14 +138,18 @@ const AddCar = () => {
 
         // Kreiraj automobil
         const carData = {
-          ...formData,
+          brand: formData.brand,
+          model: formData.model,
+          year: formData.year,
+          fuel: formData.fuel,
+          mileage: formData.mileage,
+          color: formData.color,
+          condition: formData.condition,
+          owner: formData.owner,
+          description: formData.description,
           mainImage: mainImageUrl,
           images: allImages,
         };
-
-        // Ukloni file objekte iz podataka
-        delete carData.mainImage;
-        delete carData.images;
 
         const response = await carAPI.createCar(carData);
         console.log("Automobil kreiran:", response);
@@ -156,7 +160,8 @@ const AddCar = () => {
         }, 1500);
       } catch (error) {
         console.error("Greška pri dodavanju automobila:", error);
-        showNotification("Greška pri dodavanju automobila", "error");
+        const errorMessage = error.message || "Greška pri dodavanju automobila";
+        showNotification(errorMessage, "error");
       } finally {
         setLoading(false);
         setUploadingImages(false);

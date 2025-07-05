@@ -129,7 +129,6 @@ const CarGallery = () => {
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
               Galerija automobila
             </h1>
-            <p className="text-gray-600">Pronađeno {cars.length} automobila</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -142,29 +141,6 @@ const CarGallery = () => {
                   className="cursor-pointer relative w-[300px] h-[220px]"
                   onClick={() => handleCarClick(car)}
                 >
-                  {/* Dugme za brisanje - prikazuje se na hover */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteCar(car._id);
-                    }}
-                    className="absolute top-2 right-2 z-20 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110 opacity-0 group-hover:opacity-100"
-                    title="Obriši automobil"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
                   <TiltedCard
                     imageSrc={
                       car.mainImage ||
@@ -189,8 +165,6 @@ const CarGallery = () => {
                             {car.brand} {car.model}
                           </h3>
                           <p className="text-sm">Vlasnik: {car.owner}</p>
-                          <p className="text-sm">Godina: {car.year}</p>
-                          <p className="text-sm">Gorivo: {car.fuel}</p>
                         </div>
                       </div>
                     }
@@ -198,12 +172,6 @@ const CarGallery = () => {
                 </div>
                 {/* Car info below the card */}
                 <div className="text-center">
-                  <h3 className="text-lg font-bold text-gray-800 mb-1">
-                    {car.brand} {car.model}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-2">
-                    Vlasnik: {car.owner}
-                  </p>
                   {/* Stats */}
                   <div className="flex items-center justify-center space-x-4 text-xs text-gray-500">
                     <div className="flex items-center">
