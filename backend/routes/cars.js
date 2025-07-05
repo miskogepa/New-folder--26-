@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Car = require("../models/Car");
+const { deleteMultipleImages } = require("../middleware/upload");
 
 // GET - Svi automobili
 router.get("/", async (req, res) => {
@@ -189,7 +190,50 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
+    // Prikupljaj sve public ID-ove slika za brisanje
+    const imagesToDelete = [];
+
+    // Dodaj glavne slike
+    if (car.images && car.images.length > 0) {
+      // Izvuci public ID iz URL-a (Cloudinary URL format)
+      car.images.forEach((imageUrl) => {
+        const publicId = extractPublicIdFromUrl(imageUrl);
+        if (publicId) {
+          imagesToDelete.push(publicId);
+        }
+      });
+    }
+
+    // Dodaj slike iz komentara
+    if (car.comments && car.comments.length > 0) {
+      car.comments.forEach((comment) => {
+        if (comment.images && comment.images.length > 0) {
+          comment.images.forEach((imageUrl) => {
+            const publicId = extractPublicIdFromUrl(imageUrl);
+            if (publicId) {
+              imagesToDelete.push(publicId);
+            }
+          });
+        }
+      });
+    }
+
+    // Obriši automobil iz baze
     await Car.findByIdAndDelete(req.params.id);
+
+    // Obriši slike sa Cloudinary
+    if (imagesToDelete.length > 0) {
+      try {
+        await deleteMultipleImages(imagesToDelete);
+        console.log(`Obrisano ${imagesToDelete.length} slika sa Cloudinary`);
+      } catch (cloudinaryError) {
+        console.error(
+          "Greška pri brisanju slika sa Cloudinary:",
+          cloudinaryError
+        );
+        // Nastavi sa brisanjem automobila čak i ako brisanje slika ne uspe
+      }
+    }
 
     res.json({
       success: true,
@@ -385,7 +429,7 @@ router.delete("/:id/comments/:commentId", async (req, res) => {
       });
     }
 
-    // Pronađi i obriši komentar
+    // Pronađi komentar
     const commentIndex = car.comments.findIndex(
       (comment) => comment._id.toString() === req.params.commentId
     );
@@ -397,6 +441,34 @@ router.delete("/:id/comments/:commentId", async (req, res) => {
       });
     }
 
+    const comment = car.comments[commentIndex];
+
+    // Obriši slike iz komentara sa Cloudinary
+    if (comment.images && comment.images.length > 0) {
+      const imagesToDelete = [];
+      comment.images.forEach((imageUrl) => {
+        const publicId = extractPublicIdFromUrl(imageUrl);
+        if (publicId) {
+          imagesToDelete.push(publicId);
+        }
+      });
+
+      if (imagesToDelete.length > 0) {
+        try {
+          await deleteMultipleImages(imagesToDelete);
+          console.log(
+            `Obrisano ${imagesToDelete.length} slika iz komentara sa Cloudinary`
+          );
+        } catch (cloudinaryError) {
+          console.error(
+            "Greška pri brisanju slika iz komentara sa Cloudinary:",
+            cloudinaryError
+          );
+        }
+      }
+    }
+
+    // Obriši komentar iz baze
     car.comments.splice(commentIndex, 1);
     await car.save();
 
@@ -412,5 +484,27 @@ router.delete("/:id/comments/:commentId", async (req, res) => {
     });
   }
 });
+
+// Helper funkcija za izvlačenje public ID iz Cloudinary URL-a
+function extractPublicIdFromUrl(url) {
+  try {
+    // Cloudinary URL format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/image_name.jpg
+    const urlParts = url.split("/");
+    const uploadIndex = urlParts.findIndex((part) => part === "upload");
+
+    if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
+      // Preskoči 'upload' i verziju, uzmi ostatak
+      const publicIdParts = urlParts.slice(uploadIndex + 2);
+      // Ukloni ekstenziju fajla
+      const publicId = publicIdParts.join("/").replace(/\.[^/.]+$/, "");
+      return publicId;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Greška pri izvlačenju public ID:", error);
+    return null;
+  }
+}
 
 module.exports = router;

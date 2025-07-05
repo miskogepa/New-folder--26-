@@ -29,6 +29,11 @@ const CarGallery = () => {
     fetchCars();
   }, []);
 
+  // Funkcija za brisanje automobila iz liste
+  const handleDeleteCar = (carId) => {
+    setCars((prevCars) => prevCars.filter((car) => car._id !== carId));
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -99,7 +104,11 @@ const CarGallery = () => {
       </h2>
       <div className="flex flex-wrap gap-6 justify-center">
         {cars.map((car) => (
-          <CarCard car={car} key={car._id || car.id} />
+          <CarCard
+            car={car}
+            key={car._id || car.id}
+            onDelete={handleDeleteCar}
+          />
         ))}
       </div>
     </div>
