@@ -106,6 +106,13 @@ export const carAPI = {
     return apiCall(`/cars/owner/${owner}`);
   },
 
+  // GET - Automobili po vlasniku (sa query parametrima)
+  getCarsByOwnerWithParams: async (owner, params = {}) => {
+    const queryString = new URLSearchParams({ ...params, owner }).toString();
+    const endpoint = `/cars?${queryString}`;
+    return apiCall(endpoint);
+  },
+
   // POST - Dodavanje komentara
   addComment: async (carId, commentData) => {
     return apiCall(`/cars/${carId}/comments`, {

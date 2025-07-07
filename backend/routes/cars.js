@@ -149,6 +149,20 @@ router.post("/", async (req, res) => {
 // PUT - Ažuriranje automobila
 router.put("/:id", async (req, res) => {
   try {
+    const {
+      owner,
+      model,
+      brand,
+      year,
+      fuel,
+      mileage,
+      color,
+      condition,
+      description,
+      images,
+      mainImage,
+    } = req.body;
+
     const car = await Car.findById(req.params.id);
 
     if (!car) {
@@ -158,11 +172,45 @@ router.put("/:id", async (req, res) => {
       });
     }
 
+    // Validacija obaveznih polja
+    if (
+      !owner ||
+      !model ||
+      !brand ||
+      !year ||
+      !fuel ||
+      !mileage ||
+      !color ||
+      !condition ||
+      !description
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Sva obavezna polja moraju biti popunjena",
+      });
+    }
+
     // Ažuriraj polja
-    const updatedCar = await Car.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedCar = await Car.findByIdAndUpdate(
+      req.params.id,
+      {
+        owner,
+        model,
+        brand,
+        year: parseInt(year),
+        fuel,
+        mileage,
+        color,
+        condition,
+        description,
+        images: images || car.images,
+        mainImage: mainImage || car.mainImage,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     res.json({
       success: true,

@@ -9,6 +9,7 @@ import CarGallery from "./components/CarGallery";
 import DetaljnoAuto from "./components/DetaljnoAuto";
 import HomePage from "./components/HomePage";
 import AddCar from "./components/AddCar";
+import EditCar from "./components/EditCar";
 import Profile from "./components/Profile";
 import Navbar from "./components/Navbar";
 import Hyperspeed from "./Hyperspeed";
@@ -39,6 +40,7 @@ function App() {
               <Route path="/galerija" element={<CarGallery />} />
               <Route path="/auto/:carId" element={<DetaljnoAutoWrapper />} />
               <Route path="/dodaj-auto" element={<AddCar />} />
+              <Route path="/uredi-auto/:id" element={<EditCar />} />
               <Route path="/profil" element={<Profile />} />
             </Routes>
           </main>
