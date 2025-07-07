@@ -25,10 +25,16 @@ const commentSchema = new mongoose.Schema({
 
 const carSchema = new mongoose.Schema(
   {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Korisnik je obavezan"],
+    },
     owner: {
       type: String,
-      required: [true, "Vlasnik je obavezan"],
       trim: true,
+      default: "",
+      // Opciono: možeš kasnije ukloniti ako koristiš samo userId
     },
     model: {
       type: String,
@@ -105,6 +111,7 @@ const carSchema = new mongoose.Schema(
 carSchema.index({ brand: 1, model: 1 });
 carSchema.index({ owner: 1 });
 carSchema.index({ year: -1 });
+carSchema.index({ user: 1 });
 
 // Virtual za puno ime automobila
 carSchema.virtual("fullName").get(function () {

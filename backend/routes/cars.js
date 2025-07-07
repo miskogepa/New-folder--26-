@@ -2,10 +2,13 @@ const express = require("express");
 const router = express.Router();
 const Car = require("../models/Car");
 const { deleteMultipleImages } = require("../middleware/upload");
+const { protect } = require("../middleware/auth");
+const asyncHandler = require("../middleware/asyncHandler");
 
 // GET - Svi automobili
-router.get("/", async (req, res) => {
-  try {
+router.get(
+  "/",
+  asyncHandler(async (req, res) => {
     const {
       page = 1,
       limit = 10,
@@ -13,6 +16,7 @@ router.get("/", async (req, res) => {
       owner,
       year,
       sort = "-createdAt",
+      user,
     } = req.query;
 
     // Build filter object
@@ -20,6 +24,7 @@ router.get("/", async (req, res) => {
     if (brand) filter.brand = new RegExp(brand, "i");
     if (owner) filter.owner = new RegExp(owner, "i");
     if (year) filter.year = parseInt(year);
+    if (user) filter.user = user;
 
     // Calculate skip value for pagination
     const skip = (page - 1) * limit;
@@ -28,7 +33,8 @@ router.get("/", async (req, res) => {
     const cars = await Car.find(filter)
       .sort(sort)
       .limit(parseInt(limit))
-      .skip(skip);
+      .skip(skip)
+      .populate("user", "username email firstName lastName avatar");
 
     // Get total count for pagination
     const total = await Car.countDocuments(filter);
@@ -43,48 +49,59 @@ router.get("/", async (req, res) => {
         itemsPerPage: parseInt(limit),
       },
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Greška pri učitavanju automobila",
-      error: error.message,
-    });
-  }
-});
+  })
+);
+
+// GET - Automobili trenutnog korisnika (mora biti PRE /:id)
+router.get(
+  "/my-cars",
+  protect,
+  asyncHandler(async (req, res) => {
+    const cars = await Car.find({ user: req.user._id }).sort("-createdAt");
+    res.json({ success: true, data: cars });
+  })
+);
 
 // GET - Automobil po ID-u
-router.get("/:id", async (req, res) => {
-  try {
-    const car = await Car.findById(req.params.id);
+router.get(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    try {
+      const car = await Car.findById(req.params.id).populate(
+        "user",
+        "username email firstName lastName avatar"
+      );
 
-    if (!car) {
-      return res.status(404).json({
+      if (!car) {
+        return res.status(404).json({
+          success: false,
+          message: "Automobil nije pronađen",
+        });
+      }
+
+      // Povećaj broj pregleda
+      await car.incrementViews();
+
+      res.json({
+        success: true,
+        data: car,
+      });
+    } catch (error) {
+      res.status(500).json({
         success: false,
-        message: "Automobil nije pronađen",
+        message: "Greška pri učitavanju automobila",
+        error: error.message,
       });
     }
+  })
+);
 
-    // Povećaj broj pregleda
-    await car.incrementViews();
-
-    res.json({
-      success: true,
-      data: car,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Greška pri učitavanju automobila",
-      error: error.message,
-    });
-  }
-});
-
-// POST - Novi automobil
-router.post("/", async (req, res) => {
-  try {
+// POST - Novi automobil (samo za ulogovane korisnike)
+router.post(
+  "/",
+  protect,
+  asyncHandler(async (req, res) => {
     const {
-      owner,
       model,
       brand,
       year,
@@ -95,11 +112,11 @@ router.post("/", async (req, res) => {
       description,
       images,
       mainImage,
+      owner, // opciono, za prikaz imena
     } = req.body;
 
     // Validacija obaveznih polja
     if (
-      !owner ||
       !model ||
       !brand ||
       !year ||
@@ -117,7 +134,8 @@ router.post("/", async (req, res) => {
 
     // Kreiraj novi automobil
     const newCar = new Car({
-      owner,
+      user: req.user._id,
+      owner: owner || req.user.fullName || req.user.username,
       model,
       brand,
       year: parseInt(year),
@@ -137,20 +155,29 @@ router.post("/", async (req, res) => {
       message: "Automobil je uspešno dodat",
       data: savedCar,
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Greška pri dodavanju automobila",
-      error: error.message,
-    });
-  }
-});
+  })
+);
 
-// PUT - Ažuriranje automobila
-router.put("/:id", async (req, res) => {
-  try {
+// PUT - Ažuriranje automobila (samo vlasnik)
+router.put(
+  "/:id",
+  protect,
+  asyncHandler(async (req, res) => {
+    const car = await Car.findById(req.params.id);
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Automobil nije pronađen",
+      });
+    }
+    // Dozvoli samo vlasniku
+    if (car.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Nemate dozvolu da izmenite ovaj automobil",
+      });
+    }
     const {
-      owner,
       model,
       brand,
       year,
@@ -161,20 +188,9 @@ router.put("/:id", async (req, res) => {
       description,
       images,
       mainImage,
+      owner,
     } = req.body;
-
-    const car = await Car.findById(req.params.id);
-
-    if (!car) {
-      return res.status(404).json({
-        success: false,
-        message: "Automobil nije pronađen",
-      });
-    }
-
-    // Validacija obaveznih polja
     if (
-      !owner ||
       !model ||
       !brand ||
       !year ||
@@ -189,12 +205,9 @@ router.put("/:id", async (req, res) => {
         message: "Sva obavezna polja moraju biti popunjena",
       });
     }
-
-    // Ažuriraj polja
     const updatedCar = await Car.findByIdAndUpdate(
       req.params.id,
       {
-        owner,
         model,
         brand,
         year: parseInt(year),
@@ -205,96 +218,47 @@ router.put("/:id", async (req, res) => {
         description,
         images: images || car.images,
         mainImage: mainImage || car.mainImage,
+        owner: owner || car.owner,
       },
       {
         new: true,
         runValidators: true,
       }
     );
-
     res.json({
       success: true,
       message: "Automobil je uspešno ažuriran",
       data: updatedCar,
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Greška pri ažuriranju automobila",
-      error: error.message,
-    });
-  }
-});
+  })
+);
 
-// DELETE - Brisanje automobila
-router.delete("/:id", async (req, res) => {
-  try {
+// DELETE - Brisanje automobila (samo vlasnik)
+router.delete(
+  "/:id",
+  protect,
+  asyncHandler(async (req, res) => {
     const car = await Car.findById(req.params.id);
-
     if (!car) {
       return res.status(404).json({
         success: false,
         message: "Automobil nije pronađen",
       });
     }
-
-    // Prikupljaj sve public ID-ove slika za brisanje
-    const imagesToDelete = [];
-
-    // Dodaj glavne slike
-    if (car.images && car.images.length > 0) {
-      // Izvuci public ID iz URL-a (Cloudinary URL format)
-      car.images.forEach((imageUrl) => {
-        const publicId = extractPublicIdFromUrl(imageUrl);
-        if (publicId) {
-          imagesToDelete.push(publicId);
-        }
+    // Dozvoli samo vlasniku
+    if (car.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Nemate dozvolu da obrišete ovaj automobil",
       });
     }
-
-    // Dodaj slike iz komentara
-    if (car.comments && car.comments.length > 0) {
-      car.comments.forEach((comment) => {
-        if (comment.images && comment.images.length > 0) {
-          comment.images.forEach((imageUrl) => {
-            const publicId = extractPublicIdFromUrl(imageUrl);
-            if (publicId) {
-              imagesToDelete.push(publicId);
-            }
-          });
-        }
-      });
-    }
-
-    // Obriši automobil iz baze
-    await Car.findByIdAndDelete(req.params.id);
-
-    // Obriši slike sa Cloudinary
-    if (imagesToDelete.length > 0) {
-      try {
-        await deleteMultipleImages(imagesToDelete);
-        console.log(`Obrisano ${imagesToDelete.length} slika sa Cloudinary`);
-      } catch (cloudinaryError) {
-        console.error(
-          "Greška pri brisanju slika sa Cloudinary:",
-          cloudinaryError
-        );
-        // Nastavi sa brisanjem automobila čak i ako brisanje slika ne uspe
-      }
-    }
-
+    await car.deleteOne();
     res.json({
       success: true,
       message: "Automobil je uspešno obrisan",
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Greška pri brisanju automobila",
-      error: error.message,
-    });
-  }
-});
+  })
+);
 
 // POST - Lajkovanje automobila
 router.post("/:id/like", async (req, res) => {

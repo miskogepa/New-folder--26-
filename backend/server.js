@@ -26,13 +26,21 @@ mongoose
     console.error("❌ MongoDB connection error:", error);
   });
 
+// Import middleware
+const errorHandler = require("./middleware/errorHandler");
+
 // Import routes
 const carRoutes = require("./routes/cars");
 const uploadRoutes = require("./routes/upload");
+const authRoutes = require("./routes/auth");
 
 // Use routes
+app.use("/api/auth", authRoutes);
 app.use("/api/cars", carRoutes);
 app.use("/api/upload", uploadRoutes);
+
+// Error handling middleware (mora biti poslednji)
+app.use(errorHandler);
 
 // Basic route for testing
 app.get("/", (req, res) => {
