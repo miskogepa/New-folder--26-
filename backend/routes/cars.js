@@ -392,8 +392,10 @@ router.post("/:id/comments", async (req, res) => {
 });
 
 // POST - Dodavanje slika u glavnu galeriju
-router.post("/:id/images", async (req, res) => {
-  try {
+router.post(
+  "/:id/images",
+  protect,
+  asyncHandler(async (req, res) => {
     const { images } = req.body;
 
     if (!images || !Array.isArray(images) || images.length === 0) {
@@ -404,7 +406,6 @@ router.post("/:id/images", async (req, res) => {
     }
 
     const car = await Car.findById(req.params.id);
-
     if (!car) {
       return res.status(404).json({
         success: false,
@@ -412,22 +413,187 @@ router.post("/:id/images", async (req, res) => {
       });
     }
 
-    // Dodaj slike
-    await car.addImages(images);
+    // Proveri da li je korisnik vlasnik automobila
+    if (car.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Možete dodati slike samo na svoje automobile",
+      });
+    }
+
+    // Dodaj nove slike
+    car.images = [...car.images, ...images];
+
+    // Ako nema glavne slike, postavi prvu kao glavnu
+    if (!car.mainImage && images.length > 0) {
+      car.mainImage = images[0];
+    }
+
+    await car.save();
 
     res.json({
       success: true,
       message: "Slike su uspešno dodate",
       data: car,
     });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Greška pri dodavanju slika",
-      error: error.message,
+  })
+);
+
+// DELETE - Brisanje pojedinačne slike
+router.delete(
+  "/:id/images/:imageIndex",
+  protect,
+  asyncHandler(async (req, res) => {
+    const { imageIndex } = req.params;
+    const index = parseInt(imageIndex);
+
+    if (isNaN(index) || index < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Neispravan indeks slike",
+      });
+    }
+
+    const car = await Car.findById(req.params.id);
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Automobil nije pronađen",
+      });
+    }
+
+    // Proveri da li je korisnik vlasnik automobila
+    if (car.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Možete brisati slike samo sa svojih automobila",
+      });
+    }
+
+    // Proveri da li indeks postoji
+    if (index >= car.images.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Slika sa ovim indeksom ne postoji",
+      });
+    }
+
+    // Dohvati URL slike za brisanje iz Cloudinary
+    const imageUrl = car.images[index];
+
+    try {
+      // Obriši sliku iz Cloudinary
+      const { deleteImageByUrl } = require("../middleware/upload");
+      await deleteImageByUrl(imageUrl);
+    } catch (error) {
+      console.error("Greška pri brisanju slike iz Cloudinary:", error);
+      // Nastavi sa brisanjem iz baze čak i ako Cloudinary brisanje ne uspe
+    }
+
+    // Ukloni sliku iz niza
+    car.images.splice(index, 1);
+
+    // Ako je obrisana glavna slika, postavi novu glavnu sliku
+    if (car.mainImage === imageUrl) {
+      car.mainImage = car.images.length > 0 ? car.images[0] : null;
+    }
+
+    await car.save();
+
+    res.json({
+      success: true,
+      message: "Slika je uspešno obrisana",
+      data: {
+        images: car.images,
+        mainImage: car.mainImage,
+      },
     });
-  }
-});
+  })
+);
+
+// PUT - Postavljanje glavne slike
+router.put(
+  "/:id/main-image/:imageIndex",
+  protect,
+  asyncHandler(async (req, res) => {
+    const { imageIndex } = req.params;
+    const index = parseInt(imageIndex);
+
+    if (isNaN(index) || index < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Neispravan indeks slike",
+      });
+    }
+
+    const car = await Car.findById(req.params.id);
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Automobil nije pronađen",
+      });
+    }
+
+    // Proveri da li je korisnik vlasnik automobila
+    if (car.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Možete menjati glavnu sliku samo na svojim automobilima",
+      });
+    }
+
+    // Proveri da li indeks postoji
+    if (index >= car.images.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Slika sa ovim indeksom ne postoji",
+      });
+    }
+
+    // Postavi novu glavnu sliku
+    car.mainImage = car.images[index];
+    await car.save();
+
+    res.json({
+      success: true,
+      message: "Glavna slika je uspešno postavljena",
+      data: {
+        mainImage: car.mainImage,
+      },
+    });
+  })
+);
+
+// GET - Dohvati slike automobila (samo za vlasnika)
+router.get(
+  "/:id/images",
+  protect,
+  asyncHandler(async (req, res) => {
+    const car = await Car.findById(req.params.id);
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Automobil nije pronađen",
+      });
+    }
+
+    // Proveri da li je korisnik vlasnik automobila
+    if (car.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Možete videti slike samo svojih automobila",
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        images: car.images,
+        mainImage: car.mainImage,
+      },
+    });
+  })
+);
 
 // DELETE - Brisanje komentara
 router.delete("/:id/comments/:commentId", async (req, res) => {

@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import carAPI, { uploadAPI } from "../services/api";
 import Notification from "./Notification";
 import ConfirmDialog from "./ConfirmDialog";
+import CarImageManager from "./CarImageManager";
+import { useAuth } from "../context/AuthContext";
 
 const DetaljnoAuto = () => {
+  console.log("DetaljnoAuto component rendering");
+
   const [selectedImage, setSelectedImage] = useState(null);
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +32,15 @@ const DetaljnoAuto = () => {
   });
   const navigate = useNavigate();
   const { carId } = useParams();
+  const { user } = useAuth();
+
+  // Proveri da li je korisnik vlasnik automobila
+  const isOwner = user && car && car.user && car.user._id === user._id;
+
+  // Debug logovi
+  console.log("DetaljnoAuto - user:", user);
+  console.log("DetaljnoAuto - car:", car);
+  console.log("DetaljnoAuto - isOwner:", isOwner);
 
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
@@ -49,6 +62,7 @@ const DetaljnoAuto = () => {
   useEffect(() => {
     const fetchCar = async () => {
       try {
+        console.log("Fetching car with ID:", carId);
         setLoading(true);
         setError(null);
         const response = await carAPI.getCarById(carId);
@@ -190,6 +204,15 @@ const DetaljnoAuto = () => {
     setCommentForm((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Funkcija za ažuriranje slika nakon brisanja ili postavljanja glavne slike
+  const handleImagesUpdate = (updatedImages) => {
+    setCar((prev) => ({
+      ...prev,
+      images: updatedImages.images,
+      mainImage: updatedImages.mainImage,
     }));
   };
 
@@ -436,69 +459,81 @@ const DetaljnoAuto = () => {
               </p>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex flex-wrap gap-4 mb-8">
-              <button
-                onClick={() => setShowCommentForm(!showCommentForm)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-                Dodaj komentar
-              </button>
-              <button
-                onClick={() => setShowImageForm(!showImageForm)}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                Dodaj slike
-              </button>
-              <button
-                onClick={handleDeleteCar}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-                Obriši auto
-              </button>
+            {/* Image Gallery with Management */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                Galerija slika {isOwner && "(Vaš automobil)"}
+              </h3>
+              <p className="text-gray-500">
+                CarImageManager komponenta je privremeno uklonjena za debugging
+              </p>
             </div>
 
-            {/* Comment form */}
-            {showCommentForm && (
+            {/* Action buttons - samo za vlasnika */}
+            {isOwner && (
+              <div className="flex flex-wrap gap-4 mb-8">
+                <button
+                  onClick={() => setShowCommentForm(!showCommentForm)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                  Dodaj komentar
+                </button>
+                <button
+                  onClick={() => setShowImageForm(!showImageForm)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Dodaj slike
+                </button>
+                <button
+                  onClick={handleDeleteCar}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg transition-colors flex items-center"
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                  Obriši auto
+                </button>
+              </div>
+            )}
+
+            {/* Comment form - samo za vlasnika */}
+            {isOwner && showCommentForm && (
               <div className="mb-8 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Dodaj komentar
@@ -598,8 +633,8 @@ const DetaljnoAuto = () => {
               </div>
             )}
 
-            {/* Image form */}
-            {showImageForm && (
+            {/* Image form - samo za vlasnika */}
+            {isOwner && showImageForm && (
               <div className="mb-8 p-6 bg-gray-50 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Dodaj slike u galeriju

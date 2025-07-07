@@ -136,6 +136,25 @@ export const carAPI = {
     });
   },
 
+  // DELETE - Brisanje pojedinačne slike (zahteva token)
+  deleteImage: async (carId, imageIndex) => {
+    return apiCall(`/cars/${carId}/images/${imageIndex}`, {
+      method: "DELETE",
+    });
+  },
+
+  // PUT - Postavljanje glavne slike (zahteva token)
+  setMainImage: async (carId, imageIndex) => {
+    return apiCall(`/cars/${carId}/main-image/${imageIndex}`, {
+      method: "PUT",
+    });
+  },
+
+  // GET - Dohvati slike automobila (zahteva token)
+  getCarImages: async (carId) => {
+    return apiCall(`/cars/${carId}/images`);
+  },
+
   // DELETE - Brisanje komentara (zahteva token)
   deleteComment: async (carId, commentId) => {
     return apiCall(`/cars/${carId}/comments/${commentId}`, {

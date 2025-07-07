@@ -63,11 +63,52 @@ const deleteMultipleImages = async (publicIds) => {
   }
 };
 
+// Helper funkcija za ekstrakciju public ID-a iz Cloudinary URL-a
+const extractPublicIdFromUrl = (url) => {
+  try {
+    // Primer URL-a: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/folder/image.jpg
+    const urlParts = url.split("/");
+    const uploadIndex = urlParts.findIndex((part) => part === "upload");
+
+    if (uploadIndex === -1) {
+      throw new Error("Invalid Cloudinary URL");
+    }
+
+    // Uzmi sve delove nakon 'upload' i pre 'v' (version)
+    const pathAfterUpload = urlParts.slice(uploadIndex + 1);
+    const versionIndex = pathAfterUpload.findIndex((part) =>
+      part.startsWith("v")
+    );
+
+    if (versionIndex === -1) {
+      // Ako nema verzije, uzmi sve nakon 'upload'
+      return pathAfterUpload.join("/").replace(/\.[^/.]+$/, ""); // Ukloni ekstenziju
+    }
+
+    // Uzmi sve nakon verzije
+    const pathAfterVersion = pathAfterUpload.slice(versionIndex + 1);
+    return pathAfterVersion.join("/").replace(/\.[^/.]+$/, ""); // Ukloni ekstenziju
+  } catch (error) {
+    console.error("Greška pri ekstrakciji public ID-a:", error);
+    return null;
+  }
+};
+
+// Funkcija za brisanje slike po URL-u
+const deleteImageByUrl = async (imageUrl) => {
+  const publicId = extractPublicIdFromUrl(imageUrl);
+  if (publicId) {
+    await deleteImage(publicId);
+  }
+};
+
 module.exports = {
   upload,
   uploadMultiple,
   uploadSingle,
   deleteImage,
   deleteMultipleImages,
+  deleteImageByUrl,
+  extractPublicIdFromUrl,
   cloudinary,
 };
