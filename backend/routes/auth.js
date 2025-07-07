@@ -260,4 +260,47 @@ router.post(
   })
 );
 
+/**
+ * GET /api/auth/stats
+ * Dohvati statistike kluba
+ */
+router.get(
+  "/stats",
+  asyncHandler(async (req, res) => {
+    // Dohvati broj korisnika
+    const userCount = await User.countDocuments({ isActive: true });
+
+    // Dohvati broj automobila (treba da importujemo Car model)
+    const Car = require("../models/Car");
+    const carCount = await Car.countDocuments();
+
+    // Dohvati sve automobile za dodatne statistike
+    const cars = await Car.find();
+
+    // Izračunaj dodatne statistike
+    const brands = [...new Set(cars.map((car) => car.brand))];
+    const totalViews = cars.reduce((sum, car) => sum + (car.views || 0), 0);
+    const totalLikes = cars.reduce((sum, car) => sum + (car.likes || 0), 0);
+
+    // Nedavno dodani automobili (poslednjih 30 dana)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentCars = cars.filter(
+      (car) => new Date(car.createdAt) > thirtyDaysAgo
+    ).length;
+
+    res.json({
+      success: true,
+      data: {
+        totalUsers: userCount,
+        totalCars: carCount,
+        totalBrands: brands.length,
+        totalViews,
+        totalLikes,
+        recentCars,
+      },
+    });
+  })
+);
+
 module.exports = router;
