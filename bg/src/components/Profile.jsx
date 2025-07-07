@@ -43,7 +43,8 @@ const Profile = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await carAPI.getCarsByOwnerWithParams(user._id);
+      // Pravilno: koristi rutu /my-cars
+      const response = await carAPI.getMyCars();
       setUserCars(response.data || []);
     } catch (err) {
       setError(err.message || "Greška pri učitavanju automobila");

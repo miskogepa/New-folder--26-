@@ -142,6 +142,11 @@ export const carAPI = {
       method: "DELETE",
     });
   },
+
+  // GET - Automobili trenutnog korisnika (zahteva token)
+  getMyCars: async () => {
+    return apiCall("/cars/my-cars");
+  },
 };
 
 // Upload API funkcije
