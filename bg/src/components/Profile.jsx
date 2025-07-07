@@ -1,26 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import carAPI from "../services/api";
 import Notification from "./Notification";
 import ConfirmDialog from "./ConfirmDialog";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [userCars, setUserCars] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [notification, setNotification] = useState(null);
-  const [confirmDialog, setConfirmDialog] = useState({
+  const { user, logout } = useAuth();
+  const [userCars, setUserCars] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+  const [notification, setNotification] = React.useState(null);
+  const [confirmDialog, setConfirmDialog] = React.useState({
     isOpen: false,
     action: null,
   });
-
-  // Demo korisnik - kasnije će se učitati iz localStorage ili auth sistema
-  const currentUser = {
-    name: "Milan Minjović",
-    email: "milan@example.com",
-    joinDate: "2024",
-  };
 
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
@@ -38,19 +33,19 @@ const Profile = () => {
     setConfirmDialog({ isOpen: false, action: null });
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchUserCars();
-  }, []);
+    // eslint-disable-next-line
+  }, [user]);
 
   const fetchUserCars = async () => {
+    if (!user) return;
     try {
       setLoading(true);
       setError(null);
-      const response = await carAPI.getCarsByOwnerWithParams(currentUser.name);
-      console.log("Automobili korisnika:", response);
+      const response = await carAPI.getCarsByOwnerWithParams(user._id);
       setUserCars(response.data || []);
     } catch (err) {
-      console.error("Greška pri učitavanju automobila:", err);
       setError(err.message || "Greška pri učitavanju automobila");
     } finally {
       setLoading(false);
@@ -65,11 +60,9 @@ const Profile = () => {
     showConfirmDialog(async () => {
       try {
         await carAPI.deleteCar(carId);
-        // Ukloni automobil iz liste
         setUserCars((prevCars) => prevCars.filter((car) => car._id !== carId));
         showNotification("Automobil je uspešno obrisan!");
       } catch (error) {
-        console.error("Greška pri brisanju automobila:", error);
         showNotification("Greška pri brisanju automobila", "error");
       }
     });
@@ -83,13 +76,33 @@ const Profile = () => {
     navigate(`/auto/${car._id}`);
   };
 
-  // Izračunaj statistike
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   const totalLikes = userCars.reduce((sum, car) => sum + (car.likes || 0), 0);
   const totalViews = userCars.reduce((sum, car) => sum + (car.views || 0), 0);
   const totalComments = userCars.reduce(
     (sum, car) => sum + (car.comments?.length || 0),
     0
   );
+
+  if (!user) {
+    return (
+      <div className="w-full py-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          Niste prijavljeni
+        </h2>
+        <button
+          onClick={() => navigate("/login")}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+        >
+          Prijavite se
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -139,13 +152,13 @@ const Profile = () => {
               </div>
 
               {/* User Info */}
-              <div className="text-center md:text-left">
+              <div className="text-center md:text-left flex-1">
                 <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                  {currentUser.name}
+                  {user.firstName} {user.lastName}
                 </h1>
-                <p className="text-gray-600 mb-2">{currentUser.email}</p>
+                <p className="text-gray-600 mb-2">{user.email}</p>
                 <p className="text-sm text-gray-500">
-                  Član od {currentUser.joinDate}
+                  Član od {user.joinDate ? user.joinDate.slice(0, 4) : "-"}
                 </p>
 
                 {/* Stats */}
@@ -175,6 +188,15 @@ const Profile = () => {
                     <div className="text-sm text-gray-600">Pregleda</div>
                   </div>
                 </div>
+              </div>
+              {/* Logout dugme */}
+              <div className="mt-4 md:mt-0 md:ml-8">
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  Odjavi se
+                </button>
               </div>
             </div>
           </div>
@@ -229,7 +251,6 @@ const Profile = () => {
                         <span className="font-medium">Boja:</span> {car.color}
                       </p>
                     </div>
-
                     {/* Stats */}
                     <div className="flex items-center justify-center space-x-4 text-xs text-gray-500 mt-3 pt-3 border-t">
                       <div className="flex items-center">
