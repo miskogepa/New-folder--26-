@@ -13,6 +13,8 @@ import EditCar from "./components/EditCar";
 import Profile from "./components/Profile";
 import Navbar from "./components/Navbar";
 import Hyperspeed from "./Hyperspeed";
+import Login from "./components/Login";
+import Register from "./components/Register";
 
 // Wrapper komponenta za DetaljnoAuto da može da pristupi URL parametrima
 const DetaljnoAutoWrapper = () => {
@@ -42,6 +44,8 @@ function App() {
               <Route path="/dodaj-auto" element={<AddCar />} />
               <Route path="/uredi-auto/:id" element={<EditCar />} />
               <Route path="/profil" element={<Profile />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
             </Routes>
           </main>
         </div>
