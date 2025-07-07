@@ -15,12 +15,11 @@ import Navbar from "./components/Navbar";
 import Hyperspeed from "./Hyperspeed";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Wrapper komponenta za DetaljnoAuto da može da pristupi URL parametrima
 const DetaljnoAutoWrapper = () => {
   const { carId } = useParams();
-  // Ovde ćeš kasnije učitati auto po ID-u iz baze
-  // Za sada koristimo dummy podatke
   return <DetaljnoAuto carId={carId} />;
 };
 
@@ -41,11 +40,32 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/galerija" element={<CarGallery />} />
               <Route path="/auto/:carId" element={<DetaljnoAutoWrapper />} />
-              <Route path="/dodaj-auto" element={<AddCar />} />
-              <Route path="/uredi-auto/:id" element={<EditCar />} />
-              <Route path="/profil" element={<Profile />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route
+                path="/profil"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dodaj-auto"
+                element={
+                  <ProtectedRoute>
+                    <AddCar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/uredi-auto/:id"
+                element={
+                  <ProtectedRoute>
+                    <EditCar />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </main>
         </div>
